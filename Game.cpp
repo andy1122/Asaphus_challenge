@@ -53,9 +53,7 @@ public:
   explicit Box(double initial_weight) : weight_(initial_weight) {}
   virtual ~Box() = default;  
 
-  virtual double calculateScore(uint32_t input_weight, double score)  {
-    return score;  
-  }
+  virtual void calculateScore(uint32_t input_weight, double score)  { }
   friend class Player;
   bool operator<(const Box& rhs) const { return weight_ < rhs.weight_; }
 
@@ -70,7 +68,7 @@ class GreenBox : public Box {
 public:
   GreenBox(double initial_weight) : Box(initial_weight) {}
 
-double calculateScore(uint32_t input_weight, double score)  override {
+  void calculateScore(uint32_t input_weight, double& score)  override {
     // Update weights based on input and existing values
     int first_empty_slot = -1;
     for (int i = 0; i < num_colors; ++i) {
@@ -100,7 +98,6 @@ double calculateScore(uint32_t input_weight, double score)  override {
     double mean = sum_weights/cnt_color;
     score += std::pow(mean, 2);
 
-    return score;
   }
 
 private:
@@ -113,7 +110,7 @@ class BlueBox : public Box {
 public:
   BlueBox(double initial_weight) : Box(initial_weight) {}
 
-  double calculateScore(uint32_t input_weight, double score)  override {
+  void calculateScore(uint32_t input_weight, double& score)  override {
     if (blue_max == -1.0 && blue_min == -1.0){
         blue_max = input_weight;
         blue_min = input_weight;
@@ -125,8 +122,7 @@ public:
         blue_min = input_weight;
     }
     score+= ((blue_max + blue_min)*(blue_max + blue_min + 1))/2 + blue_max;
-    
-    return score;
+
   }
 
 private:
@@ -148,34 +144,56 @@ public:
 };
 
 
-// TODO
 
 class Player {
- public:
+public:
   void takeTurn(uint32_t input_weight,
-                const std::vector<std::unique_ptr<Box> >& boxes) {
-    // TODO
-    // score will be updated here
+                const std::vector<std::unique_ptr<Box>>& boxes) {
+    int min_index = min_weight_box(boxes);
+    boxes[min_index]->calculateScore(input_weight, score_);
+
+    // update the box weight as well
+    boxes[min_index]->weight_ += input_weight;
   }
+
   double getScore() const { return score_; }
 
- private:
+  int min_weight_box(const std::vector<std::unique_ptr<Box>>& boxes) {
+    int min_index = 0;
+    for (int index = 1; index < boxes.size(); index++ ){
+        if (boxes[index]->weight_ < boxes[min_index]->weight_){
+            min_index = index;
+        }
+    }
+    return min_index;
+  }
+
+private:
   double score_{0.0};
 };
 
 std::pair<double, double> play(const std::vector<uint32_t>& input_weights) {
-  std::vector<std::unique_ptr<Box> > boxes;
-  boxes.emplace_back(Box::makeGreenBox(0.0));
-  boxes.emplace_back(Box::makeGreenBox(0.1));
-  boxes.emplace_back(Box::makeBlueBox(0.2));
-  boxes.emplace_back(Box::makeBlueBox(0.3));
+  std::vector<std::unique_ptr<Box>> boxes;
+  boxes.push_back(BoxFactory::createBox(BoxType::Green, 0.0));
+  boxes.push_back(BoxFactory::createBox(BoxType::Green, 0.1));
+  boxes.push_back(BoxFactory::createBox(BoxType::Blue, 0.2));
+  boxes.push_back(BoxFactory::createBox(BoxType::Blue, 0.3));
 
-  // TODO
+  // vector of players
+  int num_players = 2;
+  std::vector<Player> players(num_players);
 
-  std::cout << "Scores: player A " << player_A.getScore() << ", player B "
-            << player_B.getScore() << std::endl;
-  return std::make_pair(player_A.getScore(), player_B.getScore());
+  // iterate over the input_weights
+  for (int weight_index = 0; weight_index < input_weights.size();) {
+    for (int player_index = 0; player_index < players.size(); player_index++) {
+      players[player_index].takeTurn(input_weights[weight_index], boxes);
+      weight_index++;
+    }
+  }
+
+  return {players[0].getScore(), players[1].getScore()};
 }
+
 
 TEST_CASE("Final scores for first 4 Fibonacci numbers", "[fibonacci4]") {
   std::vector<uint32_t> inputs{1, 1, 2, 3};
