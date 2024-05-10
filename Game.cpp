@@ -47,18 +47,106 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
+
 class Box {
- public:
+public:
   explicit Box(double initial_weight) : weight_(initial_weight) {}
-  static std::unique_ptr<Box> makeGreenBox(double initial_weight);
-  static std::unique_ptr<Box> makeBlueBox(double initial_weight);
+  virtual ~Box() = default;  
+
+  virtual double calculateScore(uint32_t input_weight, double score)  {
+    return score;  
+  }
+  friend class Player;
   bool operator<(const Box& rhs) const { return weight_ < rhs.weight_; }
 
-  // TODO
-
- protected:
+protected:
   double weight_;
 };
+
+enum class BoxType { Green, Blue };
+
+
+class GreenBox : public Box {
+public:
+  GreenBox(double initial_weight) : Box(initial_weight) {}
+
+double calculateScore(uint32_t input_weight, double score)  override {
+    // Update weights based on input and existing values
+    int first_empty_slot = -1;
+    for (int i = 0; i < num_colors; ++i) {
+      if (green_weights_[i] == -1.0) {
+        first_empty_slot = i;
+        break;
+      }
+    }
+
+    if (first_empty_slot != -1) {
+      green_weights_[first_empty_slot] = input_weight;
+    } else { // Shift existing weights if all slots are full
+      for (int i = 0; i <num_colors-1; i++) {
+        green_weights_[i] = green_weights_[i + 1];
+      }
+      green_weights_[num_colors-1] = input_weight;
+    }
+
+    // Calculate mean of green weights and update score
+    double cnt_color = 0, sum_weights = 0;
+    for (int i = 0; i<num_colors; i++){
+        if (green_weights_[i] != -1) {
+            sum_weights+= green_weights_[i];
+            cnt_color+= 1;
+        }
+    }
+    double mean = sum_weights/cnt_color;
+    score += std::pow(mean, 2);
+
+    return score;
+  }
+
+private:
+  static const int num_colors = 3;  // Assuming there are always 3 colors
+  double green_weights_[num_colors] = {-1.0, -1.0, -1.0}; 
+
+};
+
+class BlueBox : public Box {
+public:
+  BlueBox(double initial_weight) : Box(initial_weight) {}
+
+  double calculateScore(uint32_t input_weight, double score)  override {
+    if (blue_max == -1.0 && blue_min == -1.0){
+        blue_max = input_weight;
+        blue_min = input_weight;
+    }
+    else if (input_weight > blue_max){ 
+        blue_max = input_weight;
+    }
+    else if (input_weight < blue_min) {
+        blue_min = input_weight;
+    }
+    score+= ((blue_max + blue_min)*(blue_max + blue_min + 1))/2 + blue_max;
+    
+    return score;
+  }
+
+private:
+    double blue_max{-1.0}, blue_min{-1.0}; 
+};
+
+class BoxFactory {
+public:
+  static std::unique_ptr<Box> createBox(BoxType type, double initial_weight) {
+    switch (type) {
+      case BoxType::Green:
+        return std::make_unique<GreenBox>(initial_weight);
+      case BoxType::Blue:
+        return std::make_unique<BlueBox>(initial_weight);
+      default:
+        throw std::invalid_argument("Invalid box type");
+    }
+  }
+};
+
 
 // TODO
 
