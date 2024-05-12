@@ -15,6 +15,8 @@ public:
 
   virtual void calculateScore(uint32_t input_weight, double& score)  { }
   friend class Player;
+
+  double getWeight() const { return weight_; }
   bool operator<(const Box& rhs) const { return weight_ < rhs.weight_; }
 
 protected:
@@ -132,8 +134,7 @@ private:
   double score_{0.0};
 };
 
-std::pair<double, double> play(const std::vector<uint32_t>& input_weights) {
-  std::vector<std::unique_ptr<Box>> boxes;
+std::pair<double, double> play(const std::vector<uint32_t>& input_weights, std::vector<std::unique_ptr<Box>>& boxes) {
   boxes.push_back(BoxFactory::createBox(BoxType::Green, 0.0));
   boxes.push_back(BoxFactory::createBox(BoxType::Green, 0.1));
   boxes.push_back(BoxFactory::createBox(BoxType::Blue, 0.2));
