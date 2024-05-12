@@ -6,8 +6,6 @@ git clone https://github.com/andy1122/Asaphus_challenge.git
 
 mkdir build
 
-cd build
-
 cmake -S . -B build
 
 cmake --build build
