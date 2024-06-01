@@ -1,8 +1,7 @@
 # Chance Game
 
 
-git clone https://github.com/andy1122/Asaphus_challenge.git
-
+git clone https://github.com/andy1122/Chance_game
 
 mkdir build
 
